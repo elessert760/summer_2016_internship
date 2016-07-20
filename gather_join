@@ -1,0 +1,455 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Tidy Data\n",
+    "============================================================================================\n",
+    "This notebook goes through the steps that are requried to tidy data as mentioned in the [paper][1] by Hadley Wickham, RStudio, published in the Journal of Statistical Software. We use some sample datasets in .csv format from Data folder for illustration\n",
+    "\n",
+    "[1]: http://vita.had.co.nz/papers/tidy-data.pdf"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Dataset 1 . gather.csv\n",
+    "To tidy this data we need one column, or 'variable', to store the day (1 to 31) . And another column to store the value of the count. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "metadata": {
+    "collapsed": false
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "**** Data Header ['Vendor', 'Customer', 'PM', 'Day1', 'Day2', 'Day3', 'Day4', 'Day5', 'Day6', 'Day7', 'Day8', 'Day9', 'Day10', 'Day11', 'Day12', 'Day13', 'Day14', 'Day15', 'Day16', 'Day17', 'Day18', 'Day19', 'Day20', 'Day21', 'Day22', 'Day23', 'Day24', 'Day25', 'Day26', 'Day27', 'Day28', 'Day29', 'Day30', 'Day31']\n",
+      "**** Data\n",
+      "[['Source Intelligence', 'customer_a', 'Brooke', '1', '3', '6', '7', '7', '1', '3', '6', '7', '7', '1', '3', '6', '7', '7', '1', '3', '6', '7', '7', '1', '3', '6', '7', '7', '1', '3', '6', '7', '7', '0'], ['Source Intelligence', 'Macy\\xe2\\x80\\x99s', 'Jean', '2', '5', '6', '7', '8', '2', '5', '6', '7', '8', '2', '5', '6', '7', '8', '2', '5', '6', '7', '8', '2', '5', '6', '7', '8', '2', '5', '6', '7', '8', '0']]\n"
+     ]
+    }
+   ],
+   "source": [
+    "import csv\n",
+    "folder='../Data/'\n",
+    "\n",
+    "itr=0\n",
+    "dataHeader=[]\n",
+    "data=[]\n",
+    "with open(folder+'gather.csv', 'rb') as csvfile:\n",
+    "    filereader = csv.reader(csvfile)#, delimiter=' ', quotechar='|')\n",
+    "    for row in filereader:\n",
+    "        if itr==0:\n",
+    "            #print row\n",
+    "            dataHeader=row#[0].split(\",\");\n",
+    "            itr=itr=1\n",
+    "            #print 'Data Header: ',DataHeader\n",
+    "        else:\n",
+    "            data.append(row)\n",
+    "            #print row\n",
+    "print '**** Data Header', dataHeader\n",
+    "print '**** Data'\n",
+    "print data[:2]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "metadata": {
+    "collapsed": false
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "['Vendor', 'Customer', 'PM', 'Day', 'Count']\n"
+     ]
+    }
+   ],
+   "source": [
+    "### Change Header\n",
+    "dataHeader=dataHeader[:3] + ['Day', 'Count']\n",
+    "print dataHeader"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "metadata": {
+    "collapsed": false
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "93\n",
+      "[['Source Intelligence', 'customer_a', 'Brooke', 1, 1], ['Source Intelligence', 'customer_a', 'Brooke', 2, 3], ['Source Intelligence', 'customer_a', 'Brooke', 3, 6], ['Source Intelligence', 'customer_a', 'Brooke', 4, 7], ['Source Intelligence', 'customer_a', 'Brooke', 5, 7]]\n"
+     ]
+    }
+   ],
+   "source": [
+    "### Transform Data\n",
+    "initialLength=len(data)\n",
+    "columnNo=3\n",
+    "transformedData=[]\n",
+    "for row in data:\n",
+    "    #print row\n",
+    "    for i in range(len(row[columnNo:])):\n",
+    "        Y=[]\n",
+    "        Y=row[:columnNo]+[i+1]+[int(row[columnNo+i])]\n",
+    "        transformedData.append(Y)\n",
+    "\n",
+    "        \n",
+    "#data=data[initialLength:]\n",
+    "print len(transformedData)\n",
+    "print transformedData[:5]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "metadata": {
+    "collapsed": false
+   },
+   "outputs": [],
+   "source": [
+    "### Writing back to a new csv file : tidy_gather.csv\n",
+    "\n",
+    "fileName='tidy_gather.csv'\n",
+    "with open(folder+fileName, 'wb') as csvfile:\n",
+    "    writer = csv.writer(csvfile)\n",
+    "    writer.writerow(dataHeader)\n",
+    "    for row in transformedData:\n",
+    "        writer.writerow(row)\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "collapsed": true
+   },
+   "source": [
+    "### Dataset 2: join_set1.csv and join_set2.csv\n",
+    "\n",
+    "We have two datasets on which we will perform different types of join. The most optimal way to do will be hash the contents of one table based on key, variable on which we will perform join, and then loop through the other dataset. In this case we join on the variable/column 'Company'"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 83,
+   "metadata": {
+    "collapsed": false
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "**** Data Header 1:  ['Company', 'Location']\n",
+      "**** Data 1: \n",
+      "[['yours, inc', 'Here'], ['yours, inc', 'Hither'], ['Source Intelligence', 'Carlsbad'], ['mine co.', 'Thither'], ['ours ltd.', 'Yon'], ['ours ltd.', 'Yonder'], ['theirs llc', 'There'], ['theirs llc', 'Over There']]\n",
+      "**** Data Header 2:  ['Company', 'values found']\n",
+      "**** Data 2: \n",
+      "[['mine co.', '0.02'], ['mine co.', '0.96'], ['mine co.', '0.23'], ['mine co.', '0.83'], ['mine co.', '0.79'], ['mine co.', '0.99'], ['ours ltd.', '0.88'], ['ours ltd.', '0.45'], ['ours ltd.', '0.68'], ['ours ltd.', '0.74'], ['ours ltd.', '0.67'], ['ours ltd.', '0.04'], ['theirs llc', '0.18'], ['theirs llc', '0.83'], ['theirs llc', '0.12'], ['theirs llc', '0.02'], ['theirs llc', '0.09'], ['yours, inc', '0.54'], ['yours, inc', '0.32'], ['yours, inc', '0.68'], ['yours, inc', '0.27'], ['yours, inc', '0.48'], ['yours, inc', '0.73'], ['Twitter', '100'], ['Google', '40'], ['Facebook', '10'], ['Instagram', 'text']]\n"
+     ]
+    }
+   ],
+   "source": [
+    "## Reading join_set1.csv and join_set2.csv\n",
+    "\n",
+    "itr=0\n",
+    "dataHeader=[]\n",
+    "data=[]\n",
+    "fileName1='join_set1.csv'\n",
+    "with open(folder+fileName1, 'rb') as csvfile:\n",
+    "    filereader = csv.reader(csvfile)#, delimiter=' ', quotechar='|')\n",
+    "    for row in filereader:\n",
+    "        if itr==0:\n",
+    "            #print row\n",
+    "            dataHeader=row#[0].split(\",\");\n",
+    "            itr=itr=1\n",
+    "            #print 'Data Header: ',DataHeader\n",
+    "        else:\n",
+    "            data.append(row)\n",
+    "            #print row\n",
+    "\n",
+    "dataHeader1=dataHeader\n",
+    "data1=data\n",
+    "\n",
+    "print '**** Data Header 1: ', dataHeader1\n",
+    "print '**** Data 1: '\n",
+    "print data1\n",
+    "\n",
+    "## Reading join_set2.csv\n",
+    "itr=0\n",
+    "dataHeader=[]\n",
+    "data=[]\n",
+    "fileName1='join_set2.csv'\n",
+    "with open(folder+fileName1, 'rb') as csvfile:\n",
+    "    filereader = csv.reader(csvfile)#, delimiter=' ', quotechar='|')\n",
+    "    for row in filereader:\n",
+    "        if itr==0:\n",
+    "            #print row\n",
+    "            dataHeader=row#[0].split(\",\");\n",
+    "            itr=itr=1\n",
+    "            #print 'Data Header: ',DataHeader\n",
+    "        else:\n",
+    "            data.append(row)\n",
+    "            #print row\n",
+    "\n",
+    "dataHeader2=dataHeader\n",
+    "data2=data\n",
+    "\n",
+    "print '**** Data Header 2: ', dataHeader2\n",
+    "print '**** Data 2: '\n",
+    "print data2"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 84,
+   "metadata": {
+    "collapsed": false
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Key (join on\\):  Company\n",
+      "Column Index in Dataset 1:  0\n",
+      "Column Index in Dataset 2:  0\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Enter the variable on which join needs to be performed, which is also\n",
+    "#the key for our hashmap\n",
+    "import sys\n",
+    "\n",
+    "keyVariable='Company'\n",
+    "try:\n",
+    "    index1=dataHeader1.index(keyVariable)\n",
+    "except:\n",
+    "    e = sys.exc_info()[1]\n",
+    "    print 'EXCEPTION: ', e\n",
+    "try:\n",
+    "    index2=dataHeader2.index(keyVariable)\n",
+    "except:\n",
+    "    e = sys.exc_info()[1]\n",
+    "    print 'EXCEPTION: ', e\n",
+    "\n",
+    "\n",
+    "\n",
+    "    \n",
+    "print 'Key (join on\\): ', keyVariable\n",
+    "print 'Column Index in Dataset 1: ', index1\n",
+    "print 'Column Index in Dataset 2: ', index2\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 85,
+   "metadata": {
+    "collapsed": false
+   },
+   "outputs": [],
+   "source": [
+    "## Dictionary/ HashTable to store data on 1\n",
+    "hash1={}\n",
+    "\n",
+    "for obs in data1:\n",
+    "    #print obs\n",
+    "    if obs[index1] in hash1:\n",
+    "        hash1[obs[index1]].append(obs[1])\n",
+    "    else:\n",
+    "        hash1[obs[index1]]=[obs[1]]\n",
+    "\n",
+    "#print hash1"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 86,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "### function to perform join on sets, depending on choice\n",
+    "###  returns: data\n",
+    "def Join(data1,data2,choice):\n",
+    "    if choice==1: ## Inner Join\n",
+    "        data=[]\n",
+    "        for obs in data2:\n",
+    "            if obs[index2] in hash1:\n",
+    "                for d in hash1[obs[index2]]:\n",
+    "                    Y=[obs[index2]] + [d] +  obs[:index2] +obs[index2+1:]\n",
+    "                    data.append(Y)\n",
+    "\n",
+    "    elif choice==2:  ## Outer Join\n",
+    "        data=[]\n",
+    "        #Loop data 2 to find elements common to data 1 doing inner join and adding none for rows not common to data1\n",
+    "        checkList=[]\n",
+    "        for obs in data2:\n",
+    "            if obs[index2] in hash1:\n",
+    "                checkList.append(obs[index2])\n",
+    "                for d in hash1[obs[index2]]:\n",
+    "                    Y=[obs[index2]] + [d] +  obs[:index2] +obs[index2+1:]\n",
+    "                    data.append(Y)\n",
+    "            else:\n",
+    "                Y=[obs[index2]] + [None for i in range(len(data1[0])-1)] +  obs[:index2] +obs[index2+1:]\n",
+    "                data.append(Y)\n",
+    "        #Loop data 1 to find elements not common to data2\n",
+    "        for obs in data1:\n",
+    "            if obs[index1] not in checkList:\n",
+    "                Y=obs + [None for i in range(len(data1[0])-1)]\n",
+    "                data.append(Y)\n",
+    "\n",
+    "    elif choice==3:  ## Outer Join\n",
+    "        data=[]\n",
+    "        #Loop data 2 to find elements common to data 1 \n",
+    "        checkList=[]\n",
+    "        for obs in data2:\n",
+    "            if obs[index2] in hash1:\n",
+    "                checkList.append(obs[index2])\n",
+    "                for d in hash1[obs[index2]]:\n",
+    "                    Y=[obs[index2]] + [d] +  obs[:index2] +obs[index2+1:]\n",
+    "                    data.append(Y)\n",
+    "        #Loop data 1 to find elements not common to data2, adding none for columns of data 2\n",
+    "        for obs in data1:\n",
+    "            if obs[index1] not in checkList:\n",
+    "                Y=obs + [None for i in range(len(data1[0])-1)]\n",
+    "                data.append(Y)\n",
+    "\n",
+    "    elif choice==4: ### Right Outer Join\n",
+    "        data=[]\n",
+    "        #Loop data 2 to find elements common to data 1 doing inner join \n",
+    "        for obs in data2:\n",
+    "            if obs[index2] in hash1:\n",
+    "                #checkList.append(obs[index2])\n",
+    "                for d in hash1[obs[index2]]:\n",
+    "                    Y=[obs[index2]] + [d] +  obs[:index2] +obs[index2+1:]\n",
+    "                    data.append(Y)\n",
+    "            else: # adding none for rows not common to data1\n",
+    "                Y=[obs[index2]] + [None for i in range(len(data1[0])-1)] +  obs[:index2] +obs[index2+1:]\n",
+    "                data.append(Y)\n",
+    "\n",
+    "    return data\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 87,
+   "metadata": {
+    "collapsed": false
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "*************\n",
+      "Join:  Outer Join  , No of rows:  45\n",
+      "--  Data Header ----\n",
+      "['Company', 'Location', 'values found']\n",
+      "-- Peep at Data ----\n",
+      "[['Twitter', None, '100'], ['Google', None, '40'], ['Facebook', None, '10'], ['Instagram', None, 'text'], ['Source Intelligence', 'Carlsbad', None]]\n"
+     ]
+    }
+   ],
+   "source": [
+    "#Loop over the other table to join.\n",
+    "## Choose from:\n",
+    "#    1. Inner Join\n",
+    "#    2. Outer Join\n",
+    "#    3. Left Outer Join\n",
+    "#    4. Right Outer Join\n",
+    "\n",
+    "choiceDict={1:'Inner Join' , 2:'Outer Join' , 3: 'Left Outer Join', 4:'Right Outer Join'}\n",
+    "\n",
+    "choice=2 # Enter number from above\n",
+    "\n",
+    "dataHeader= dataHeader1 + dataHeader2[:index2] + dataHeader2[index2+1:] \n",
+    "\n",
+    "\n",
+    "data=Join(data1,data2,choice)\n",
+    "\n",
+    "print '*************'\n",
+    "print 'Join: ' , choiceDict[choice], ' , No of rows: ', len(data)\n",
+    "print '--  Data Header ----'\n",
+    "print dataHeader\n",
+    "print '-- Peep at Data ----'\n",
+    "print data[-5:]\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 91,
+   "metadata": {
+    "collapsed": false
+   },
+   "outputs": [],
+   "source": [
+    "## Write the joined dataset to new csv file\n",
+    "\n",
+    "for choice in range(1,5,1):\n",
+    "    fileName=choiceDict[choice] + '_joinSet1_2.csv'\n",
+    "    data=Join(data1,data2,choice)\n",
+    "    #print folder+fileName\n",
+    "    with open(folder+fileName, 'wb') as csvfile:\n",
+    "        writer = csv.writer(csvfile)\n",
+    "        #print dataHeader\n",
+    "        writer.writerow(dataHeader)\n",
+    "        for row in data:\n",
+    "            writer.writerow(row)\n",
+    "            #print 'done'\n",
+    "\n",
+    "    \n",
+    "    "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "anaconda-cloud": {},
+  "kernelspec": {
+   "display_name": "Python [Root]",
+   "language": "python",
+   "name": "Python [Root]"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 2
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython2",
+   "version": "2.7.12"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 0
+}
